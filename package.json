@@ -1,0 +1,29 @@
+{
+    "name": "restful-server",
+    "version": "0.0.0",
+    "description": "RESTful API Server using Node JS",
+    "author": {
+        "name": "Kong Pheng Thao",
+        "email": "thao8615@stthomas.edu"
+    },
+    "contributors": [
+        {
+            "name": "Andrew Steichen",
+            "email": ""
+        },
+        {
+            "name": "Michael Andreucci",
+            "email": "michael.andreucci@stthomas.edu"
+        }
+    ],
+    "main": "server.js",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/kpthao/RESTfulAPI.git"
+    },
+    "dependencies": {
+        "canvasjs": "^1.8.3",
+        "express": "^4.18.2",
+        "sqlite3": "^5.1.2"
+    }
+}
