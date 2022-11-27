@@ -5,7 +5,8 @@ let path = require('path');
 // NPM modules
 let express = require('express');
 let sqlite3 = require('sqlite3');
-
+const { query } = require('express');
+const e = require('express');
 
 let db_filename = path.join(__dirname, 'db', 'stpaul_crime.sqlite3');
 
@@ -24,63 +25,120 @@ let db = new sqlite3.Database(db_filename, sqlite3.OPEN_READWRITE, (err) => {
     }
 });
 
-
 // GET request handler for crime codes
 app.get('/codes', (req, res) => {
-    if (queryCheck(req.query, res) === true) { return; }
-
-    console.log(req.query); // query object (key-value pairs after the ? in the url)
-    let query = 'SELECT * FROM Codes ORDER BY code';
-    let clause = [];
+    let query = "SELECT * FROM Codes"
+    let clause = " WHERE code = "
+    //make key value pairs
+    for (const [key, value] of Object.entries(req.query)) {
+        if(key == "code"){
+            let new_values = value.split(",")
+            //create query for each value
+            for(let i=0; i<new_values.length; i++){
+                query = query + clause + new_values[i];
+                clause = " OR code = "
+            }
+        }
+    }
+    query = query + " ORDER BY code";
     
-    // res.status(200).type('json').send({}); // <-- you will need to change this
+    databaseSelect(query, [])
+    .then((data) => {
+        console.log(data);
+        res.status(200).type('json').send(data); 
+    })
+    .catch((err) => {
+        res.status(500).type('html').send("Error: Query is entered incorrectly (e.g. ?code=15");
+
+    })
 });
 
 // GET request handler for neighborhoods
 app.get('/neighborhoods', (req, res) => {
-    if (queryCheck(req.query, res) === true) { return; }
-
-    console.log(req.query); // query object (key-value pairs after the ? in the url)
-    let query = 'SELECT * FROM Neighborhoods ORDER BY neighborhood_number';
-    let clause = [];
-    // res.status(200).type('json').send({}); // <-- you will need to change this
+    let query = "SELECT * FROM Neighborhoods"
+    let clause =  " WHERE neighborhood_number ="
+    //make key value pairs
+    for (const [key, value] of Object.entries(req.query)) {
+        if(key == "id"){
+            let new_values = value.split(",")
+            //create query for each value
+            for(let i=0; i<new_values.length; i++){
+                query = query + clause + new_values[i];
+                clause = " OR neighborhood_number = "
+            }
+        }
+    }
+    query = query + " ORDER BY neighborhood_number";
+    
+    databaseSelect(query, [])
+    .then((data) => {
+        console.log(data);
+        res.status(200).type('json').send(data); 
+    })
+    .catch((err) => {
+        res.status(500).type('html').send("Error: Query is entered incorrectly (e.g. ?neighborhood_number=12");
+    })
 });
 
 // GET request handler for crime incidents
 app.get('/incidents', (req, res) => {
-    if (queryCheck(req.query, res) === true) { return; }
+    // let query = "SELECT * FROM Incidents"
+    let query = "SELECT case_number, SUBSTRING(date_time,1,10) AS date, SUBSTRING(date_time,12,19) AS time, code, incident, police_grid, neighborhood_number, block FROM incidents";
 
-    console.log(req.query); // query object (key-value pairs after the ? in the url)
-    let query = 'SELECT * FROM Incidents';
-    let clause = [
-        {
-            expression: "Date(date_time) >= ?",
-            param: req.query.start_date
-        },
-        {
-            expression: "Date(date_time) >= ?",
-            param: req.query.end_date
-        },
-        {
-            expression: "code >= ?",
-            param: parseInt(req.query.code)
-        },
-        {
-            expression: "police_grid >= ?",
-            param: parseInt(req.query.grid)
-        },
-        {
-            expression: "neighborhood_number >= ?",
-            param: parseInt(req.query.neighborhood)
-        },
-    ];
+    let clause = " WHERE ("
+    let limit = 1000
+    let new_values
+    
+    //make key value pairs
+    for (const [key, value] of Object.entries(req.query)) {
+        if(key == "start_date"){
+            query = query + clause + "date(date) >= " + "'" + value + "'";
+            clause = ") AND (";
 
-    buildQuery(query, clause)
-    .then((incidents) => {
-        res.status(200).type('json').send(incidents)
+        } else if(key == "end_date"){
+            query = query + clause + "date(date) <= " + "'" + value + "'";
+            clause = ") AND (";
+
+        } else if(key == "code"){
+            new_values = value.split(",");
+            for(i=0; i<new_values.length; i++){
+                query = query + clause + "code = " + new_values[i];
+                clause = " OR ";
+            }
+            clause = ") AND ("
+
+        } else if(key == "grid"){
+            new_values = value.split(",");
+            for(i=0; i<new_values.length; i++){
+                query = query + clause + "police_grid = " + new_values[i];
+                clause = " OR ";
+            }
+            clause = ") AND ("
+
+        } else if(key == "neighborhood"){
+            new_values = value.split(",");
+            for(i=0; i<new_values.length; i++){
+                query = query + clause + "neighborhood_number = " +  new_values[i];
+                clause = " OR ";
+            }
+            clause = ") AND (";
+            
+        } else if(key == "limit"){
+            limit = value;
+        }        
+    }
+
+    if((clause == " WHERE (" && req.query.hasOwnProperty("limit")) || clause == " WHERE ("){
+        query = "SELECT case_number, SUBSTRING(date_time,1,10) AS date, SUBSTRING(date_time,12,19) AS time, code, incident, police_grid, neighborhood_number, block FROM incidents ORDER BY date ASC, time LIMIT " + limit;
+    } else {
+        query = query + ") ORDER BY date ASC, time LIMIT " + limit
+    }
+    databaseSelect(query, [])
+    .then((data) => {
+        res.status(200).type('json').send(data); 
     })
     .catch((err) => {
-        res.status(404).type('text/plain').send(err)
+        res.status(500).type('html').send("Error: Query is entered incorrectly (e.g. ?limit=50"); 
     })
 });
 
@@ -111,23 +169,6 @@ function databaseSelect(query, params) {
             }
         })
     })
-}
-
-/**
- * Will build SQL Query
- * @param {Current created SQL Query} query 
- * @param {Holds current conditions that may be used to find specified info} condition 
- */
-function buildQuery(query, condition){
-    let url = window.location.search
-    //Initialize limit to be 1000 by default unless specified 
-    let limit
-    if(!url.hasOwnProperty("limit")){
-        limit = 1000
-    }
-    let clause = "WHERE"
-    let sqlQuery = '${query} ${clause} ${condition}'
-    //TODO Create SQLQuery
 }
 
 // Create Promise for SQLite3 database INSERT or DELETE query
