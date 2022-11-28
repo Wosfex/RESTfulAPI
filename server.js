@@ -30,12 +30,12 @@ app.get('/codes', (req, res) => {
     let query = "SELECT * FROM Codes"
     let clause = " WHERE code = "
     //make key value pairs
-    for (const [key, value] of Object.entries(req.query)) {
+    for (const [key, data] of Object.entries(req.query)) {
         if(key == "code"){
-            let new_values = value.split(",")
+            let new_data = data.split(",")
             //create query for each value
-            for(let i=0; i<new_values.length; i++){
-                query = query + clause + new_values[i];
+            for(let i=0; i<new_data.length; i++){
+                query = query + clause + new_data[i];
                 clause = " OR code = "
             }
         }
@@ -44,7 +44,6 @@ app.get('/codes', (req, res) => {
     
     databaseSelect(query, [])
     .then((data) => {
-        console.log(data);
         res.status(200).type('json').send(data); 
     })
     .catch((err) => {
@@ -58,12 +57,12 @@ app.get('/neighborhoods', (req, res) => {
     let query = "SELECT * FROM Neighborhoods"
     let clause =  " WHERE neighborhood_number ="
     //make key value pairs
-    for (const [key, value] of Object.entries(req.query)) {
+    for (const [key, data] of Object.entries(req.query)) {
         if(key == "id"){
-            let new_values = value.split(",")
+            let new_data = data.split(",")
             //create query for each value
-            for(let i=0; i<new_values.length; i++){
-                query = query + clause + new_values[i];
+            for(let i=0; i<new_data.length; i++){
+                query = query + clause + new_data[i];
                 clause = " OR neighborhood_number = "
             }
         }
@@ -72,7 +71,6 @@ app.get('/neighborhoods', (req, res) => {
     
     databaseSelect(query, [])
     .then((data) => {
-        console.log(data);
         res.status(200).type('json').send(data); 
     })
     .catch((err) => {
@@ -87,45 +85,43 @@ app.get('/incidents', (req, res) => {
 
     let clause = " WHERE ("
     let limit = 1000
-    let new_values
-    
+    let new_data
+    let iterator = 1
     //make key value pairs
-    for (const [key, value] of Object.entries(req.query)) {
+    for (const [key, data] of Object.entries(req.query)) {
         if(key == "start_date"){
-            query = query + clause + "date(date) >= " + "'" + value + "'";
-            clause = ") AND (";
-
+            query = query + clause + "date(date) >= '" + data + "'"
+            clause = ") AND ("
         } else if(key == "end_date"){
-            query = query + clause + "date(date) <= " + "'" + value + "'";
-            clause = ") AND (";
-
+            query = query + clause + "date(date) <= '" + data + "'"
+            clause = ") AND ("
         } else if(key == "code"){
-            new_values = value.split(",");
-            for(i=0; i<new_values.length; i++){
-                query = query + clause + "code = " + new_values[i];
-                clause = " OR ";
+            new_data = data.split(",")
+            for(i=0; i<new_data.length; i++){
+                query = query + clause + "code = " + new_data[i]
+                clause = " OR "
             }
             clause = ") AND ("
-
         } else if(key == "grid"){
-            new_values = value.split(",");
-            for(i=0; i<new_values.length; i++){
-                query = query + clause + "police_grid = " + new_values[i];
-                clause = " OR ";
+            new_data = data.split(",");
+            for(i=0; i<new_data.length; i++){
+                query = query + clause + "police_grid = " + new_data[i]
+                clause = " OR "
             }
             clause = ") AND ("
 
         } else if(key == "neighborhood"){
-            new_values = value.split(",");
-            for(i=0; i<new_values.length; i++){
-                query = query + clause + "neighborhood_number = " +  new_values[i];
-                clause = " OR ";
+            new_data = data.split(",");
+            for(i=0; i<new_data.length; i++){
+                query = query + clause + "neighborhood_number = " +  new_data[i]
+                clause = " OR "
             }
-            clause = ") AND (";
+            clause = ") AND ("
             
         } else if(key == "limit"){
-            limit = value;
-        }        
+            limit = data
+        }     
+        iterator++   
     }
 
     if((clause == " WHERE (" && req.query.hasOwnProperty("limit")) || clause == " WHERE ("){
@@ -145,15 +141,35 @@ app.get('/incidents', (req, res) => {
 // PUT request handler for new crime incident
 app.put('/new-incident', (req, res) => {
     console.log(req.body); // uploaded data
-    
-    // res.status(200).type('txt').send('OK'); // <-- you may need to change this
+    let query = 'INSERT INTO incidents (case_number, date, time, code, incident, polic_grid, neighborhood_number, block) VALUES (?, ?, ?, ?, ?, ?, ?, ?);'
+    let data = [req.body.case_number, req.body.date, req.body.time, req.body.code, req.body.incident, req.body.police_grid, req.body.neighborhood_number, req.body.block]
+    databaseRun(query, data)
+    .then((data) => {
+        res.status(200).type('txt').send('Data has been successfully inputed into the database')
+    })
+    .catch((err) => {
+        res.status(500).type('txt').send("The data is already inside of the database or something is wrong with the program.")
+    })
 });
 
 // DELETE request handler for new crime incident
-app.delete('/new-incident', (req, res) => {
+app.delete('/remove-incident', (req, res) => {
     console.log(req.body); // uploaded data
-    
-    // res.status(200).type('txt').send('OK'); // <-- you may need to change this
+    let query = 'DELETE FROM Incidents WHERE case_number = ?'
+    let findQuery = 'SELECT COUNT(*) AS count FROM Incidents WHERE case_number = ?'
+    databaseSelect(findQuery, req.body.case_number)
+    .then((data) => {
+        if(data.isEmpty()){
+            res.status(500).type('txt').send('This data does not exist in the database')
+        }
+        databaseRun(query, req.body.case_number)
+        .then(() => {
+            res.status(200).type('txt').send('Data has been deleted from the database')
+        })
+    })
+    .catch((err) => {
+        res.status(500).type('txt').send("The data does not exist or something is wrong with the program.")
+    })
 });
 
 
