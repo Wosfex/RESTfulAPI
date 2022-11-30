@@ -10,10 +10,6 @@
         {
             "name": "Andrew Steichen",
             "email": "stei7041@stthomas.edu"
-        },
-        {
-            "name": "Michael Andreucci",
-            "email": "michael.andreucci@stthomas.edu"
         }
     ],
     "main": "server.js",
