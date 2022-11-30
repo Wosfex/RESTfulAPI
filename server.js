@@ -1,6 +1,7 @@
 // Built-in Node.js modules
 let fs = require('fs');
 let path = require('path');
+let cors = require('cors');
 
 // NPM modules
 let express = require('express');
@@ -13,6 +14,7 @@ let db_filename = path.join(__dirname, 'db', 'stpaul_crime.sqlite3');
 let app = express();
 let port = 8000;
 
+app.use(cors())
 app.use(express.json());
 
 // Open SQLite3 database (in read-only mode)
@@ -27,6 +29,7 @@ let db = new sqlite3.Database(db_filename, sqlite3.OPEN_READWRITE, (err) => {
 
 // GET request handler for crime codes
 app.get('/codes', (req, res) => {
+    console.log(req.query);
     let query = "SELECT * FROM Codes"
     let clause = " WHERE code = "
     //make key value pairs
@@ -40,20 +43,28 @@ app.get('/codes', (req, res) => {
             }
         }
     }
+    //order is ascending by default
     query = query + " ORDER BY code";
     
+    //ignore for now
+    //let promise = databaseSelect(query,[]);
+    //promise.then((rows) => {
+    //    res.status(200).type('json').send(rows);
+    //})
+
     databaseSelect(query, [])
     .then((data) => {
         res.status(200).type('json').send(data); 
-    })
+     })
     .catch((err) => {
-        res.status(500).type('html').send("Error: Query is entered incorrectly (e.g. ?code=15");
+        res.status(500).type('html').send("Error: Query is entered incorrectly (e.g. ?code=15,...)");
 
     })
 });
 
 // GET request handler for neighborhoods
 app.get('/neighborhoods', (req, res) => {
+    console.log(req.query);
     let query = "SELECT * FROM Neighborhoods"
     let clause =  " WHERE neighborhood_number ="
     //make key value pairs
@@ -74,12 +85,13 @@ app.get('/neighborhoods', (req, res) => {
         res.status(200).type('json').send(data); 
     })
     .catch((err) => {
-        res.status(500).type('html').send("Error: Query is entered incorrectly (e.g. ?neighborhood_number=12");
+        res.status(500).type('html').send("Error: Query is entered incorrectly (e.g. ?neighborhood_number=12,...)");
     })
 });
 
 // GET request handler for crime incidents
 app.get('/incidents', (req, res) => {
+    console.log(req.query);
     // let query = "SELECT * FROM Incidents"
     let query = "SELECT case_number, SUBSTRING(date_time,1,10) AS date, SUBSTRING(date_time,12,19) AS time, code, incident, police_grid, neighborhood_number, block FROM incidents";
 
@@ -132,7 +144,7 @@ app.get('/incidents', (req, res) => {
         res.status(200).type('json').send(data); 
     })
     .catch((err) => {
-        res.status(500).type('html').send("Error: Query is entered incorrectly (e.g. ?limit=50"); 
+        res.status(500).type('html').send("Error: Query is entered incorrectly (e.g. ?limit=50)"); 
     })
 });
 
