@@ -86,7 +86,6 @@ app.get('/incidents', (req, res) => {
     let clause = " WHERE ("
     let limit = 1000
     let new_data
-    let iterator = 1
     //make key value pairs
     for (const [key, data] of Object.entries(req.query)) {
         if(key == "start_date"){
@@ -120,8 +119,7 @@ app.get('/incidents', (req, res) => {
             
         } else if(key == "limit"){
             limit = data
-        }     
-        iterator++   
+        }        
     }
 
     if((clause == " WHERE (" && req.query.hasOwnProperty("limit")) || clause == " WHERE ("){
@@ -148,7 +146,7 @@ app.put('/new-incident', (req, res) => {
     let data = [req.body.case_number, date_time, req.body.code, req.body.incident, req.body.police_grid, req.body.neighborhood_number, req.body.block]
     console.log(data)
     databaseRun(query, data)
-    .then((data) => {
+    .then(() => {
         res.status(200).type('txt').send('Data has been successfully inputed into the database')
     })
     .catch((err) => {
@@ -160,20 +158,12 @@ app.put('/new-incident', (req, res) => {
 app.delete('/remove-incident', (req, res) => {
     console.log(req.body); // uploaded data
     let query = 'DELETE FROM Incidents WHERE case_number = ?'
-    let findQuery = 'SELECT * FROM Incidents WHERE case_number = ?'
-    databaseSelect(findQuery, req.body.case_number)
-    .then((data) => {
-        if(data.isEmpty()){
-            res.status(500).type('txt').send('This data does not exist in the database')
-        }
-        databaseRun(query, req.body.case_number)
-        .then(() => {
-            res.status(200).type('txt').send('Data has been deleted from the database')
-        })
-        console.log("Data: " + data)
+    databaseRun(query, req.body.case_number)
+    .then(() => {
+        res.status(200).type('txt').send('Data has been deleted from the database')
     })
-    .catch((err) => {
-        res.status(500).type('txt').send("The data does not exist or something is wrong with the program.")
+    .catch((err) =>{
+        res.status(500).type('txt').send('There is an error in the program')
     })
 });
 
