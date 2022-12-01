@@ -46,12 +46,7 @@ app.get('/codes', (req, res) => {
     //order is ascending by default
     query = query + " ORDER BY code";
     
-    //ignore for now
-    //let promise = databaseSelect(query,[]);
-    //promise.then((rows) => {
-    //    res.status(200).type('json').send(rows);
-    //})
-
+    
     databaseSelect(query, [])
     .then((data) => {
         res.status(200).type('json').send(data); 
