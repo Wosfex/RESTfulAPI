@@ -169,6 +169,34 @@ app.put('/new-incident', (req, res) => {
 // DELETE request handler for new crime incident
 app.delete('/remove-incident', (req, res) => {
     console.log(req.body); // uploaded data
+    let requestedIncident = req.body.case_number;
+    let param;
+    let query;
+    let exists = false;
+    
+    query = 'SELECT * FROM Incidents WHERE case_number = ' + requestedIncident;
+    //find if incident exists or not
+    databaseSelect(query, param)
+    .then((data) =>{
+        console.log(data);
+        data.forEach(element => {
+            if (element.case_number === '' + requestedIncident){
+                exists = true;
+            }
+        });
+
+        if (exists == false){
+            return res.status(500).type('txt').send({'Error, could not find incident number ' :requestedIncident});
+        }else{
+            query = 'DELETE FROM Incidents WHERE case_number = ' + requestedIncident;
+            databaseRun(query, param)
+            .then(() => {
+             res.status(200).type('txt').send('Requested incident number was sucessfully removed.');
+            })
+        }
+    })
+
+  /* If needed to go back to delete without tracking/checking if incident exists
     let query = 'DELETE FROM Incidents WHERE case_number = ?'
     databaseRun(query, req.body.case_number)
     .then(() => {
@@ -177,6 +205,7 @@ app.delete('/remove-incident', (req, res) => {
     .catch((err) =>{
         res.status(500).type('txt').send('There is an error in the program')
     })
+    */
 });
 
 
