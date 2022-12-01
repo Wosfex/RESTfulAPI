@@ -152,6 +152,7 @@ app.get('/incidents', (req, res) => {
 app.put('/new-incident', (req, res) => {
     console.log(req.body); // uploaded data
     let query = 'INSERT INTO incidents VALUES (?, ?, ?, ?, ?, ?, ?);'
+    let requestedIncident = req.body.case_number;
     // let query = 'INSERT INTO incidents (case_number, date_time, code, incident, polic_grid, neighborhood_number, block) VALUES (?, ?, ?, ?, ?, ?, ?, ?);'
 
     let date_time = req.body.date + "T" + req.body.time
@@ -162,7 +163,7 @@ app.put('/new-incident', (req, res) => {
         res.status(200).type('txt').send('Data has been successfully inputed into the database')
     })
     .catch((err) => {
-        res.status(500).type('txt').send("The data is already inside of the database.")
+        res.status(500).type('txt').send("The incident with case number: " + requestedIncident + " is already inside of the database.")
     })
 });
 
